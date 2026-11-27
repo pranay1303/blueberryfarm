@@ -78,15 +78,17 @@ async def lifespan(_app: FastAPI) -> AsyncIterator[None]:
         db.close()
 
     log_application(action="server_started", module="system", metadata={"env": settings.APP_ENV, "db": "mysql"})
-    task = asyncio.create_task(_auto_backup_loop())
+    import os
+    task = None if os.getenv("VERCEL") else asyncio.create_task(_auto_backup_loop())
     try:
         yield
     finally:
-        task.cancel()
-        try:
-            await task
-        except asyncio.CancelledError:
-            pass
+        if task:
+            task.cancel()
+            try:
+                await task
+            except asyncio.CancelledError:
+                pass
 
 
 app = FastAPI(

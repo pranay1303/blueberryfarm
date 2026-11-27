@@ -58,15 +58,22 @@ class Settings:
         self.APP_TIMEZONE: str = os.getenv("APP_TIMEZONE", "Asia/Kolkata")
 
         self.BASE_DIR: Path = Path(os.getenv("BLUEBERRY_BASE_DIR", str(DEFAULT_ROOT_DIR))).resolve()
-        self.DATA_DIR: Path = self._resolve_dir(os.getenv("DATA_DIR", "data"))
-        self.LOGS_DIR: Path = self._resolve_dir(os.getenv("LOGS_DIR", "logs"))
-        self.STORAGE_DIR: Path = self._resolve_dir(os.getenv("STORAGE_DIR", "storage"))
+        is_vercel = bool(os.getenv("VERCEL"))
+        default_data = "/tmp/blueberry/data" if is_vercel else "data"
+        default_logs = "/tmp/blueberry/logs" if is_vercel else "logs"
+        default_storage = "/tmp/blueberry/storage" if is_vercel else "storage"
+        default_attach = "/tmp/blueberry/storage/attachments" if is_vercel else "storage/attachments"
+        default_backups = "/tmp/blueberry/storage/backups" if is_vercel else "storage/backups"
+
+        self.DATA_DIR: Path = self._resolve_dir(os.getenv("DATA_DIR", default_data))
+        self.LOGS_DIR: Path = self._resolve_dir(os.getenv("LOGS_DIR", default_logs))
+        self.STORAGE_DIR: Path = self._resolve_dir(os.getenv("STORAGE_DIR", default_storage))
 
         self.QUOTATIONS_DIR: Path = self.STORAGE_DIR / "quotations"
         self.INVOICES_DIR: Path = self.STORAGE_DIR / "invoices"
         self.RECEIPTS_DIR: Path = self.STORAGE_DIR / "receipts"
-        self.ATTACHMENTS_DIR: Path = self._resolve_dir(os.getenv("ATTACHMENTS_DIR", "storage/attachments"))
-        self.BACKUPS_DIR: Path = self._resolve_dir(os.getenv("BACKUPS_DIR", "storage/backups"))
+        self.ATTACHMENTS_DIR: Path = self._resolve_dir(os.getenv("ATTACHMENTS_DIR", default_attach))
+        self.BACKUPS_DIR: Path = self._resolve_dir(os.getenv("BACKUPS_DIR", default_backups))
 
         self.PDF_ASSETS_DIR: Path = Path(__file__).resolve().parents[1] / "pdf" / "assets"
         self.BRANDING_DIR: Path = self.BASE_DIR / "assets" / "branding"
@@ -131,7 +138,10 @@ class Settings:
             self.PDF_ASSETS_DIR,
             self.BRANDING_DIR,
         ]:
-            d.mkdir(parents=True, exist_ok=True)
+            try:
+                d.mkdir(parents=True, exist_ok=True)
+            except OSError:
+                pass
 
     @property
     def JWT_SECRET_KEY(self) -> str:
