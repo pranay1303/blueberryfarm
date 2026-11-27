@@ -1,0 +1,34 @@
+services:
+  - type: web
+    name: blueberry-farm-api
+    runtime: python
+    plan: free
+    rootDir: .
+    buildCommand: pip install -r backend/requirements.txt
+    startCommand: PYTHONPATH=backend uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /api/health
+    envVars:
+      - key: APP_ENV
+        value: production
+      - key: APP_TIMEZONE
+        value: Asia/Kolkata
+      - key: COOKIE_SECURE
+        value: "true"
+      - key: AUTO_BACKUP_ENABLED
+        value: "false"
+      - key: MYSQL_SSL
+        value: "true"
+      - key: JWT_SECRET_KEY
+        generateValue: true
+      - key: MYSQL_HOST
+        sync: false
+      - key: MYSQL_PORT
+        sync: false
+      - key: MYSQL_DATABASE
+        sync: false
+      - key: MYSQL_USER
+        sync: false
+      - key: MYSQL_PASSWORD
+        sync: false
+      - key: CORS_ORIGINS
+        sync: false

@@ -1,0 +1,36 @@
+@import "tailwindcss";
+
+:root {
+  --bb-primary: #0752A5;
+  --bb-secondary: #236DC4;
+  --bb-light: #D5DEFF;
+  --bb-bg: #F5F7FB;
+  --bb-text: #172033;
+  --bb-border: #E3E8F0;
+}
+
+@layer base {
+  html, body {
+    font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background-color: #F5F7FB;
+    color: #172033;
+    -webkit-tap-highlight-color: transparent;
+    overflow-x: hidden;
+    width: 100%;
+    max-width: 100vw;
+  }
+
+  #root {
+    overflow-x: hidden;
+    width: 100%;
+    max-width: 100vw;
+  }
+
+  input, select, textarea {
+    font-size: 16px; /* Prevents iOS auto-zoom on form focus */
+  }
+}
+
+.pb-safe {
+  padding-bottom: max(0.75rem, env(safe-area-inset-bottom));
+}

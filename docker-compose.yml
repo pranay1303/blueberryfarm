@@ -1,0 +1,14 @@
+services:
+  blueberry-resort:
+    build: .
+    container_name: blueberry-farm-resort
+    ports:
+      - "8000:8000"
+    env_file:
+      - .env
+    volumes:
+      - ./data:/app/data
+      - ./logs:/app/logs
+      - ./storage:/app/storage
+    restart: unless-stopped
+

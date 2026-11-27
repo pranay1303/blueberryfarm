@@ -1,0 +1,25 @@
+{
+  "name": "Blueberry Farm and Resort",
+  "short_name": "Blueberry Resort",
+  "description": "Booking, Quotation, Billing & Resort Operations Management for Blueberry Farm and Resort, Karjat.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#F5F7FB",
+  "theme_color": "#0752A5",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
+
