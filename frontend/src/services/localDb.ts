@@ -146,6 +146,7 @@ function createDefaultState(): LocalState {
         min_guests: 2,
         max_guests: 50,
         description: '24-hour AC room/villa stay with Breakfast, Lunch, Hi-Tea, Dinner & Pool Access.',
+        included_meals: 'All Meals (Breakfast, Lunch, Hi-Tea, Dinner)',
         inclusions: ['AC Rooms', 'Swimming Pool', 'All 4 Meals', 'Indoor & Outdoor Games', 'Rain Dance'],
         is_active: true,
         created_at: now,
@@ -162,6 +163,7 @@ function createDefaultState(): LocalState {
         min_guests: 4,
         max_guests: 80,
         description: 'Day outing (9 AM to 6 PM) with Breakfast, Lunch, Hi-Tea & Swimming Pool.',
+        included_meals: 'Breakfast, Lunch & Hi-Tea',
         inclusions: ['Swimming Pool', 'Breakfast, Lunch & Hi-Tea', 'Rain Dance', 'Lawn Access'],
         is_active: true,
         created_at: now,
@@ -178,6 +180,7 @@ function createDefaultState(): LocalState {
         min_guests: 20,
         max_guests: 120,
         description: 'Exclusive farmhouse booking for family reunions, corporate offsites & celebrations.',
+        included_meals: 'All Meals & Live BBQ',
         inclusions: ['Entire Property Access', 'All Meals & BBQ', 'Sound System', 'Bonfire'],
         is_active: true,
         created_at: now,
@@ -926,20 +929,40 @@ export const localStorageAdapter: AxiosAdapter = async (config: InternalAxiosReq
     return ok({ package: pkg }, config);
   }
 
-  if (path === '/packages/calculate' && method === 'POST') {
+  if ((path === '/packages/calculate' || path === '/packages/quote') && method === 'POST') {
     const pkg = state.packages.find((p) => p.id === body.package_id || p.package_code === body.package_id) || state.packages[0];
-    const adults = Number(body.adults || 2);
-    const children = Number(body.children || 0);
-    const infants = Number(body.infants || 0);
-    const adultRate = Number(pkg?.weekday_rate || 2000);
-    const childRate = Number(pkg?.child_price || 1000);
-    const infantRate = Number(pkg?.infant_price || 0);
+    const adults = Number(body.adults ?? 2);
+    const children = Number(body.children ?? 0);
+    const infants = Number(body.infants ?? 0);
+    const checkInDate = body.check_in_date ? new Date(body.check_in_date) : new Date();
+    const dayOfWeek = Number.isNaN(checkInDate.getTime()) ? 1 : checkInDate.getDay();
+    const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
+    const adultRate = Number((isWeekend ? pkg?.weekend_rate : pkg?.weekday_rate) ?? pkg?.weekday_rate ?? 2500);
+    const childRate = Number(pkg?.child_price ?? 1250);
+    const infantRate = Number(pkg?.infant_price ?? 0);
+    const totalAmount = adults * adultRate + children * childRate + infants * infantRate;
     return ok(
       {
+        package: pkg || {
+          id: 'pkg-default',
+          name: 'Stay Package',
+          weekday_rate: adultRate,
+          weekend_rate: adultRate,
+          child_price: childRate,
+          infant_price: infantRate,
+          included_meals: 'All Meals',
+        },
+        quote: {
+          effective_adult_rate: adultRate,
+          effective_child_rate: childRate,
+          effective_infant_rate: infantRate,
+          is_weekend: isWeekend,
+          total_package_amount: totalAmount,
+        },
         adult_rate: adultRate,
         child_rate: childRate,
         infant_rate: infantRate,
-        total_package_amount: adults * adultRate + children * childRate + infants * infantRate,
+        total_package_amount: totalAmount,
       },
       config
     );
