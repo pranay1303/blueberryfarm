@@ -280,6 +280,7 @@ export interface ResortSettings {
     default_terms: string;
     authorized_signatory_name: string;
     has_signature_image?: boolean;
+    signature_data_url?: string;
   };
   backup: {
     auto_backup_enabled: boolean;

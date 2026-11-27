@@ -6,14 +6,7 @@ import { ToastContainer } from './components/ToastContainer';
 import { LoadingSpinner } from './components/UiPrimitives';
 
 // Layouts
-import { PublicLayout } from './layouts/PublicLayout';
 import { AppLayout } from './layouts/AppLayout';
-
-// Public Pages (Streamlined: Home, Booking, Confirmation & Tracking)
-import { HomePage } from './pages/public/HomePage';
-import { PublicBookingPage } from './pages/public/PublicBookingPage';
-import { BookingSuccessPage } from './pages/public/BookingSuccessPage';
-import { TrackPage } from './pages/public/TrackPage';
 
 // Admin Pages
 import { LoginPage } from './pages/LoginPage';
@@ -61,28 +54,10 @@ const AppRoutes: React.FC = () => {
 
   return (
     <Routes>
-      {/* 1. PUBLIC CUSTOMER PORTAL (Accessible without login) */}
-      <Route element={<PublicLayout />}>
-        <Route path="/" element={<HomePage />} />
-        <Route path="/book-now" element={<PublicBookingPage />} />
-        <Route path="/booking-success" element={<BookingSuccessPage />} />
-        <Route path="/track" element={<TrackPage />} />
+      {/* Admin-Only Mode: Root redirects directly to Admin Portal */}
+      <Route path="/" element={<Navigate to="/admin" replace />} />
 
-        {/* Legacy public routes seamlessly redirect to Home */}
-        <Route path="/about" element={<Navigate to="/" replace />} />
-        <Route path="/facilities" element={<Navigate to="/" replace />} />
-        <Route path="/accommodation" element={<Navigate to="/" replace />} />
-        <Route path="/packages" element={<Navigate to="/#featured-packages" replace />} />
-        <Route path="/dining" element={<Navigate to="/" replace />} />
-        <Route path="/activities" element={<Navigate to="/" replace />} />
-        <Route path="/gallery" element={<Navigate to="/" replace />} />
-        <Route path="/contact" element={<Navigate to="/" replace />} />
-        <Route path="/faqs" element={<Navigate to="/" replace />} />
-        <Route path="/privacy-policy" element={<Navigate to="/" replace />} />
-        <Route path="/terms" element={<Navigate to="/" replace />} />
-      </Route>
-
-      {/* 2. ADMIN AUTHENTICATION */}
+      {/* ADMIN AUTHENTICATION */}
       <Route
         path="/admin/login"
         element={user ? <Navigate to="/admin" replace /> : <LoginPage />}
@@ -261,8 +236,8 @@ const AppRoutes: React.FC = () => {
       <Route path="/settings" element={<RedirectWithSearch to="/admin/settings" />} />
       <Route path="/backups" element={<RedirectWithSearch to="/admin/data-management" />} />
 
-      {/* 404 Catch-All */}
-      <Route path="*" element={<Navigate to="/" replace />} />
+      {/* 404 Catch-All -> Admin */}
+      <Route path="*" element={<Navigate to="/admin" replace />} />
     </Routes>
   );
 };

@@ -1,6 +1,9 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { Database, Save, Trash2, Upload } from 'lucide-react';
+import { Database, Download, QrCode, Save, Trash2, Upload } from 'lucide-react';
 import { api } from '../../services/api';
+import { exportFullJsonBackup, importFullJsonBackup } from '../../services/localDb';
+import { generateUpiQrDataUrl } from '../../services/pdfGenerator';
+import defaultSigUrl from '../../assets/signature.png';
 import { useToast } from '../../context/ToastContext';
 import { extractErrorMessage } from '../../utils/format';
 import { LoadingSpinner } from '../../components/UiPrimitives';
@@ -13,6 +16,7 @@ export const SettingsPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [clearDemoOpen, setClearDemoOpen] = useState(false);
+  const [qrPreview, setQrPreview] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -29,6 +33,46 @@ export const SettingsPage: React.FC = () => {
   useEffect(() => {
     void load();
   }, [load]);
+
+  useEffect(() => {
+    const upi = settings?.payment_info?.upi_id || '';
+    const payee = settings?.payment_info?.account_name || settings?.business_name || 'Blueberry Farm and Resort';
+    if (!upi.trim()) {
+      setQrPreview(null);
+      return;
+    }
+    let active = true;
+    generateUpiQrDataUrl(upi, payee).then((url) => {
+      if (active) setQrPreview(url);
+    });
+    return () => {
+      active = false;
+    };
+  }, [settings?.payment_info?.upi_id, settings?.payment_info?.account_name, settings?.business_name]);
+
+  const handleExportJson = () => {
+    const { filename, content } = exportFullJsonBackup();
+    const blob = new Blob([content], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    a.click();
+    URL.revokeObjectURL(url);
+    showToast(`Exported JSON backup: ${filename}`, 'success');
+  };
+
+  const handleImportJson = async (file: File | undefined) => {
+    if (!file) return;
+    try {
+      const text = await file.text();
+      importFullJsonBackup(text);
+      showToast('JSON backup imported successfully! Reloading settings...', 'success');
+      await load();
+    } catch (err) {
+      showToast(extractErrorMessage(err, 'Invalid JSON backup file.'), 'error');
+    }
+  };
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -124,21 +168,86 @@ export const SettingsPage: React.FC = () => {
           </div>
         </div>
 
-        {/* Payment Details */}
-        <div className="rounded-2xl border border-[#E3E8F0] bg-white p-4 space-y-3">
-          <h2 className="text-sm font-bold text-[#0752A5]">Payment Information (Printed on Invoices & Quotations)</h2>
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+        {/* Payment, Bank & UPI QR Details */}
+        <div className="rounded-2xl border border-[#E3E8F0] bg-white p-4 space-y-4">
+          <div className="flex items-center justify-between">
             <div>
-              <label className="mb-1 block text-xs font-semibold">GPay / PhonePe Number</label>
-              <input value={settings.payment_info.gpay_number} onChange={(e) => setSettings({ ...settings, payment_info: { ...settings.payment_info, gpay_number: e.target.value } })} className="min-h-[42px] w-full rounded-xl border border-[#E3E8F0] px-3" />
+              <h2 className="text-sm font-bold text-[#0752A5]">Bank Account & UPI QR Details (Printed on Quotations & Invoices)</h2>
+              <p className="text-xs text-slate-500">All fields below & a live scannable UPI QR Code are printed automatically on every Quotation and Invoice PDF</p>
             </div>
-            <div>
-              <label className="mb-1 block text-xs font-semibold">Account Name</label>
-              <input value={settings.payment_info.account_name} onChange={(e) => setSettings({ ...settings, payment_info: { ...settings.payment_info, account_name: e.target.value } })} className="min-h-[42px] w-full rounded-xl border border-[#E3E8F0] px-3" />
+          </div>
+          <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:col-span-2">
+              <div>
+                <label className="mb-1 block text-xs font-semibold">Bank Name</label>
+                <input
+                  value={settings.payment_info.bank_name || ''}
+                  placeholder="e.g. State Bank of India"
+                  onChange={(e) => setSettings({ ...settings, payment_info: { ...settings.payment_info, bank_name: e.target.value } })}
+                  className="min-h-[42px] w-full rounded-xl border border-[#E3E8F0] px-3"
+                />
+              </div>
+              <div>
+                <label className="mb-1 block text-xs font-semibold">Account Holder Name</label>
+                <input
+                  value={settings.payment_info.account_name || ''}
+                  placeholder="e.g. Blueberry Farm and Resort"
+                  onChange={(e) => setSettings({ ...settings, payment_info: { ...settings.payment_info, account_name: e.target.value } })}
+                  className="min-h-[42px] w-full rounded-xl border border-[#E3E8F0] px-3"
+                />
+              </div>
+              <div>
+                <label className="mb-1 block text-xs font-semibold">Bank Account Number</label>
+                <input
+                  value={settings.payment_info.account_number || ''}
+                  placeholder="Enter Bank Account Number"
+                  onChange={(e) => setSettings({ ...settings, payment_info: { ...settings.payment_info, account_number: e.target.value } })}
+                  className="min-h-[42px] w-full rounded-xl border border-[#E3E8F0] px-3"
+                />
+              </div>
+              <div>
+                <label className="mb-1 block text-xs font-semibold">IFSC Code</label>
+                <input
+                  value={settings.payment_info.ifsc_code || ''}
+                  placeholder="e.g. SBIN0001234"
+                  onChange={(e) => setSettings({ ...settings, payment_info: { ...settings.payment_info, ifsc_code: e.target.value.toUpperCase() } })}
+                  className="min-h-[42px] w-full rounded-xl border border-[#E3E8F0] px-3 uppercase"
+                />
+              </div>
+              <div>
+                <label className="mb-1 block text-xs font-semibold">UPI ID (Generates QR Code)</label>
+                <input
+                  value={settings.payment_info.upi_id || ''}
+                  placeholder="e.g. 8669408484@ybl or blueberry@okaxis"
+                  onChange={(e) => setSettings({ ...settings, payment_info: { ...settings.payment_info, upi_id: e.target.value } })}
+                  className="min-h-[42px] w-full rounded-xl border border-[#E3E8F0] px-3"
+                />
+              </div>
+              <div>
+                <label className="mb-1 block text-xs font-semibold">GPay / PhonePe Number</label>
+                <input
+                  value={settings.payment_info.gpay_number || ''}
+                  placeholder="e.g. 8669408484"
+                  onChange={(e) => setSettings({ ...settings, payment_info: { ...settings.payment_info, gpay_number: e.target.value } })}
+                  className="min-h-[42px] w-full rounded-xl border border-[#E3E8F0] px-3"
+                />
+              </div>
             </div>
-            <div>
-              <label className="mb-1 block text-xs font-semibold">Account Number</label>
-              <input value={settings.payment_info.account_number} onChange={(e) => setSettings({ ...settings, payment_info: { ...settings.payment_info, account_number: e.target.value } })} className="min-h-[42px] w-full rounded-xl border border-[#E3E8F0] px-3" />
+
+            {/* Live UPI QR Preview */}
+            <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-blue-200 bg-[#F5F7FB] p-4 text-center">
+              {qrPreview ? (
+                <>
+                  <img src={qrPreview} alt="UPI Payment QR Code" className="h-32 w-32 rounded-xl border border-slate-200 bg-white p-1.5 shadow-xs" />
+                  <p className="mt-2 text-xs font-bold text-[#0752A5]">Live Scannable UPI QR</p>
+                  <p className="text-[11px] text-slate-500 break-all">{settings.payment_info.upi_id}</p>
+                </>
+              ) : (
+                <div className="py-4 text-slate-400">
+                  <QrCode className="mx-auto h-10 w-10 mb-1.5 opacity-60" />
+                  <p className="text-xs font-semibold">Enter UPI ID to generate QR</p>
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -198,7 +307,7 @@ export const SettingsPage: React.FC = () => {
           <div className="flex flex-col sm:flex-row sm:items-center gap-4 rounded-xl border border-slate-200 bg-slate-50 p-3">
             <div className="flex h-20 w-44 items-center justify-center rounded-lg border border-slate-300 bg-white p-2 shadow-xs">
               <img
-                src="/api/settings/signature"
+                src={settings.documents.signature_data_url || defaultSigUrl}
                 alt="Authorized Signature"
                 className="max-h-full max-w-full object-contain"
                 onError={(e) => {
@@ -227,6 +336,31 @@ export const SettingsPage: React.FC = () => {
               <Trash2 className="h-4 w-4" /> Remove Signature
             </button>
           )}
+        </div>
+      </div>
+
+      {/* Local JSON Data Backup & Transfer */}
+      <div className="rounded-2xl border border-[#E3E8F0] bg-white p-4 space-y-3">
+        <div className="flex items-center gap-2 text-sm font-bold text-[#0752A5]">
+          <Database className="h-4 w-4" />
+          <span>Local JSON Storage — Export & Transfer Backup</span>
+        </div>
+        <p className="text-xs text-slate-500">
+          All resort data is stored locally on this device (no MySQL server needed). Download a JSON backup anytime or import it on another mobile phone.
+        </p>
+        <div className="flex flex-wrap gap-2">
+          <button
+            type="button"
+            onClick={handleExportJson}
+            className="inline-flex min-h-[40px] items-center gap-1.5 rounded-xl bg-[#0752A5] px-4 text-xs font-bold text-white hover:bg-[#236DC4]"
+          >
+            <Download className="h-4 w-4" /> Download JSON Backup
+          </button>
+          <label className="inline-flex min-h-[40px] cursor-pointer items-center gap-1.5 rounded-xl border border-[#E3E8F0] bg-[#F5F7FB] px-4 text-xs font-bold text-[#0752A5] hover:bg-slate-100">
+            <Upload className="h-4 w-4" />
+            <span>Import JSON Backup</span>
+            <input type="file" accept=".json" className="hidden" onChange={(e) => void handleImportJson(e.target.files?.[0])} />
+          </label>
         </div>
       </div>
 

@@ -1,4 +1,5 @@
 import axios, { type AxiosError, type InternalAxiosRequestConfig } from 'axios';
+import { localStorageAdapter } from './localDb';
 
 // Access token lives strictly in memory (never localStorage)
 let inMemoryAccessToken: string | null = null;
@@ -20,6 +21,7 @@ export const api = axios.create({
   baseURL: '/api',
   withCredentials: true,
   timeout: 25000,
+  ...(import.meta.env.MODE !== 'test' ? { adapter: localStorageAdapter } : {}),
 });
 
 api.interceptors.request.use((config: InternalAxiosRequestConfig) => {

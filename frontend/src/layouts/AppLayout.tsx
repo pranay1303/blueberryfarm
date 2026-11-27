@@ -1,10 +1,9 @@
 import React, { useState } from 'react';
-import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
+import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import {
   Calendar,
   CalendarCheck,
   Car,
-  ExternalLink,
   FileText,
   HardDriveDownload,
   Home,
@@ -84,19 +83,9 @@ export const AppLayout: React.FC = () => {
           </div>
         </div>
 
-        {/* View Public Website Link */}
-        <div className="p-3 border-b border-slate-100">
-          <Link
-            to="/"
-            target="_blank"
-            className="flex items-center justify-between px-3 py-2 rounded-xl bg-blue-50/80 hover:bg-blue-100 text-[#004AAC] text-xs font-bold transition-colors"
-          >
-            <span>View Public Website</span>
-            <ExternalLink className="w-3.5 h-3.5" />
-          </Link>
-        </div>
+        {/* Admin-Only Mode: Public website link hidden */}
 
-        <div className="px-3 pt-2">
+        <div className="px-3 pt-3">
           <button
             type="button"
             onClick={() => setSearchOpen(true)}
@@ -165,13 +154,6 @@ export const AppLayout: React.FC = () => {
           </div>
           <div className="flex items-center gap-1.5">
             <NotificationBell lightTheme={false} />
-            <Link
-              to="/"
-              className="flex h-9 w-9 items-center justify-center rounded-xl bg-white/10 text-white"
-              title="Public Site"
-            >
-              <ExternalLink className="h-4 w-4" />
-            </Link>
             <button
               type="button"
               onClick={() => setSearchOpen(true)}
