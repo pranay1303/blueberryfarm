@@ -590,9 +590,49 @@ export const localStorageAdapter: AxiosAdapter = async (config: InternalAxiosReq
       .filter((b) => b.check_out_date >= today && b.booking_status === 'Checked In')
       .slice(0, 6);
 
+    const expenseBreakdown = Object.entries(
+      state.expenses.reduce<Record<string, number>>((acc, e) => {
+        acc[e.category] = (acc[e.category] || 0) + Number(e.amount || 0);
+        return acc;
+      }, {})
+    ).map(([category, amount]) => ({ category, amount }));
+
+    const paymentDist = [
+      { name: 'Paid', value: activeInvoices.filter((i) => i.payment_status === 'Paid').length },
+      { name: 'Partially Paid', value: activeInvoices.filter((i) => i.payment_status === 'Partially Paid').length },
+      { name: 'Unpaid', value: activeInvoices.filter((i) => i.payment_status === 'Unpaid').length },
+    ].filter((x) => x.value > 0);
+
+    const recentActivity = [
+      ...activeBookings.slice(0, 4).map((b) => ({
+        type: 'booking',
+        title: `Booking ${b.booking_reference} — ${b.customer_name}`,
+        subtitle: `${b.check_in_date} to ${b.check_out_date} • ${b.booking_status}`,
+        amount: Number(b.total_booking_amount || 0),
+        timestamp: b.created_at || nowISO(),
+      })),
+      ...activeInvoices.slice(0, 4).map((i) => ({
+        type: 'invoice',
+        title: `Invoice ${i.invoice_number} — ${i.customer_name}`,
+        subtitle: `${i.payment_status} • Due Rs. ${Number(i.balance_due || 0)}`,
+        amount: Number(i.grand_total || 0),
+        timestamp: i.created_at || nowISO(),
+      })),
+    ].slice(0, 6);
+
+    const insights: string[] = [];
+    if (activeBookings.length === 0) {
+      insights.push('Welcome to Blueberry Farm Admin! Create your first Quotation, Booking, or Invoice to see live insights here.');
+    } else {
+      insights.push(`${activeBookings.length} active booking(s) recorded with ₹${totalCollected.toLocaleString('en-IN')} collected.`);
+      if (pendingBalances > 0) {
+        insights.push(`₹${pendingBalances.toLocaleString('en-IN')} pending across unpaid or partially paid invoices.`);
+      }
+    }
+
     return ok(
       {
-        metrics: {
+        kpis: {
           total_bookings: activeBookings.length,
           confirmed_bookings: activeBookings.filter((b) => b.booking_status === 'Confirmed').length,
           todays_bookings: activeBookings.filter((b) => b.check_in_date === today).length,
@@ -611,38 +651,37 @@ export const localStorageAdapter: AxiosAdapter = async (config: InternalAxiosReq
           total_expenses: totalExpenses,
           estimated_operating_profit: totalCollected - totalExpenses,
         },
-        upcoming_checkins: upcomingCheckins,
-        upcoming_checkouts: upcomingCheckouts,
-        recent_invoices: activeInvoices.slice(0, 5),
-        recent_bookings: activeBookings.slice(0, 5),
-        monthly_series: [
-          {
-            label: new Date().toLocaleDateString('en-IN', { month: 'short', year: 'numeric' }),
-            invoiced_revenue: totalInvoiced,
-            collected_revenue: totalCollected,
-            expenses: totalExpenses,
-            profit: totalCollected - totalExpenses,
-            bookings: activeBookings.length,
-          },
-        ],
-        payment_status_distribution: [
-          { name: 'Paid', value: activeInvoices.filter((i) => i.payment_status === 'Paid').length },
-          { name: 'Partially Paid', value: activeInvoices.filter((i) => i.payment_status === 'Partially Paid').length },
-          { name: 'Unpaid', value: activeInvoices.filter((i) => i.payment_status === 'Unpaid').length },
-        ],
-        package_popularity: state.packages.map((p) => ({
-          name: p.name,
-          bookings: activeBookings.filter((b) => b.package_name === p.name).length,
-          revenue: activeBookings
-            .filter((b) => b.package_name === p.name)
-            .reduce((s, b) => s + Number(b.total_booking_amount || 0), 0),
+        charts: {
+          monthly_series: [
+            {
+              label: new Date().toLocaleDateString('en-IN', { month: 'short', year: 'numeric' }),
+              invoiced_revenue: totalInvoiced,
+              collected_revenue: totalCollected,
+              expenses: totalExpenses,
+              profit: totalCollected - totalExpenses,
+              bookings: activeBookings.length,
+            },
+          ],
+          payment_status_distribution: paymentDist,
+          package_popularity: state.packages.map((p) => ({
+            name: p.name,
+            bookings: activeBookings.filter((b) => b.package_name === p.name).length,
+            revenue: activeBookings
+              .filter((b) => b.package_name === p.name)
+              .reduce((s, b) => s + Number(b.total_booking_amount || 0), 0),
+          })),
+          expense_breakdown: expenseBreakdown,
+        },
+        upcoming_checkins: upcomingCheckins.map((b) => ({
+          ...b,
+          remaining_balance: Number(b.balance_due || 0),
         })),
-        expense_by_category: Object.entries(
-          state.expenses.reduce<Record<string, number>>((acc, e) => {
-            acc[e.category] = (acc[e.category] || 0) + Number(e.amount || 0);
-            return acc;
-          }, {})
-        ).map(([category, amount]) => ({ category, amount })),
+        upcoming_checkouts: upcomingCheckouts.map((b) => ({
+          ...b,
+          remaining_balance: Number(b.balance_due || 0),
+        })),
+        recent_activity: recentActivity,
+        insights,
       },
       config
     );
@@ -1713,20 +1752,29 @@ export const localStorageAdapter: AxiosAdapter = async (config: InternalAxiosReq
 
   if (path === '/storage/summary' && method === 'GET') {
     const rawSize = new Blob([localStorage.getItem(STORAGE_KEY) || '']).size;
+    const totalRecords =
+      state.enquiries.length +
+      state.bookings.length +
+      state.customers.length +
+      state.vehicles.length +
+      state.quotations.length +
+      state.invoices.length +
+      state.payments.length +
+      state.expenses.length;
     return ok(
       {
         storage_mode: 'Browser LocalStorage (JSON)',
         total_bytes: rawSize,
-        counts: {
-          enquiries: state.enquiries.length,
-          bookings: state.bookings.length,
-          customers: state.customers.length,
-          vehicles: state.vehicles.length,
-          quotations: state.quotations.length,
-          invoices: state.invoices.length,
-          payments: state.payments.length,
-          expenses: state.expenses.length,
-          backups: state.backups.length,
+        total_business_records: totalRecords,
+        sections: {
+          bookings: { count: state.bookings.length, label: 'Bookings' },
+          enquiries: { count: state.enquiries.length, label: 'Booking Enquiries' },
+          customers: { count: state.customers.length, label: 'Customers' },
+          quotations: { count: state.quotations.length, label: 'Quotations' },
+          invoices: { count: state.invoices.length, label: 'Invoices & Bills' },
+          payments: { count: state.payments.length, label: 'Payments & Receipts' },
+          expenses: { count: state.expenses.length, label: 'Expenses' },
+          vehicles: { count: state.vehicles.length, label: 'Vehicle Registry' },
         },
       },
       config
@@ -1769,7 +1817,7 @@ export const localStorageAdapter: AxiosAdapter = async (config: InternalAxiosReq
   }
 
   if (path === '/audit-logs' && method === 'GET') {
-    return ok({ items: state.audit_logs, total: state.audit_logs.length }, config);
+    return ok({ entries: state.audit_logs, items: state.audit_logs, total: state.audit_logs.length }, config);
   }
 
   // Fallback empty list for any other GET
