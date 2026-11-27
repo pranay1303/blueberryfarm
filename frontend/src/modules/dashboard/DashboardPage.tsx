@@ -113,7 +113,7 @@ export const DashboardPage: React.FC = () => {
     { label: 'Total Invoices', value: String(kpis.total_invoices ?? 0), sub: `Invoiced: ${formatINR(kpis.total_invoiced_revenue)}`, icon: IndianRupee, tone: 'blue' },
     { label: 'Collected Revenue', value: formatINR(kpis.total_collected_revenue), sub: `This month: ${formatINR(kpis.monthly_revenue)}`, icon: CreditCard, tone: 'emerald' },
     { label: 'Pending Payments', value: formatINR(kpis.pending_balances), sub: 'Outstanding receivables', icon: Wallet, tone: 'amber' },
-    { label: 'Total Booking Enquiries', value: String(kpis.total_enquiries ?? 0), sub: `Pending review: ${kpis.pending_enquiries ?? 0}`, icon: MessageSquare, tone: 'indigo' },
+    { label: 'Total Quotations', value: String(kpis.total_quotations ?? 0), sub: 'Saved & sent quotes', icon: MessageSquare, tone: 'indigo' },
     { label: 'Guest Vehicles', value: String(kpis.total_vehicles ?? 0), sub: 'Registered at resort gate', icon: Car, tone: 'purple' },
   ];
 
@@ -163,28 +163,28 @@ export const DashboardPage: React.FC = () => {
       {/* Minimal Quick Actions */}
       <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-4">
         <Link
-          to="/invoices?new=1"
+          to="/admin/invoices?new=1"
           className="flex min-h-[44px] items-center justify-center gap-2 rounded-xl bg-[#0752A5] px-3 py-2 text-xs font-bold text-white shadow-xs hover:bg-[#236DC4]"
         >
           + Quick Bill / Invoice
         </Link>
         <Link
-          to="/bookings?new=1"
+          to="/admin/bookings?new=1"
           className="flex min-h-[44px] items-center justify-center gap-2 rounded-xl border border-[#E3E8F0] bg-white px-3 py-2 text-xs font-bold text-[#0752A5] hover:bg-[#F5F7FB]"
         >
           + New Booking
         </Link>
         <Link
-          to="/quotations?new=1"
+          to="/admin/quotations?new=1"
           className="flex min-h-[44px] items-center justify-center gap-2 rounded-xl border border-[#E3E8F0] bg-white px-3 py-2 text-xs font-bold text-[#0752A5] hover:bg-[#F5F7FB]"
         >
           + New Quotation
         </Link>
         <Link
-          to="/enquiries"
+          to="/admin/quotations"
           className="flex min-h-[44px] items-center justify-center gap-2 rounded-xl border border-[#E3E8F0] bg-white px-3 py-2 text-xs font-bold text-[#0752A5] hover:bg-[#F5F7FB]"
         >
-          View Enquiries
+          All Quotations
         </Link>
       </div>
 

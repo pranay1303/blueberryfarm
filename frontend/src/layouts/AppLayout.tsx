@@ -35,7 +35,7 @@ export const AppLayout: React.FC = () => {
 
   const sidebarItems = [
     { to: '/admin', label: 'Dashboard', icon: Home, show: hasPermission('dashboard:view'), end: true },
-    { to: '/admin/enquiries', label: 'Booking Enquiries', icon: CalendarCheck, show: hasPermission('enquiries:read') || hasPermission('bookings:read') },
+    { to: '/admin/quotations', label: 'Quotations', icon: FileText, show: hasPermission('quotations:read') },
     { to: '/admin/bookings', label: 'Bookings', icon: CalendarCheck, show: hasPermission('bookings:read') },
     { to: '/admin/calendar', label: 'Stay Calendar', icon: Calendar, show: hasPermission('bookings:read') },
     { to: '/admin/invoices', label: 'Invoices & Bills', icon: Receipt, show: hasPermission('invoices:read') },

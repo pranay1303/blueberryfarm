@@ -103,12 +103,17 @@ async function drawHeader(
 
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(8.5);
-  doc.text(settings.address_line || 'At. Post - Mandawane, Tal - Karjat, Dist - Raigad, Maharashtra', 42, 20.5);
-  doc.text(
-    `Mob: ${settings.phone || '8669408484'}  |  ${settings.email || 'info@blueberryfarmandresort.com'}  |  ${settings.website || 'blueberryfarmandresort.com'}`,
-    42,
-    26.5
-  );
+  const addrLine = (settings.address_line || '').trim();
+  if (addrLine) {
+    doc.text(addrLine, 42, 20.5);
+  }
+  const contactParts: string[] = [];
+  if ((settings.phone || '').trim()) contactParts.push(`Mob: ${settings.phone.trim()}`);
+  if ((settings.email || '').trim()) contactParts.push(settings.email.trim());
+  if ((settings.website || '').trim()) contactParts.push(settings.website.trim());
+  if (contactParts.length > 0) {
+    doc.text(contactParts.join('  |  '), 42, addrLine ? 26.5 : 21);
+  }
 
   // Document Title Banner on Right
   doc.setFillColor(255, 255, 255);
